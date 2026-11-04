@@ -2,22 +2,17 @@
 
 ## Project Summary
 
-In this project you will build and explain a small music recommender system.
+**Music Recommender Simulation** (model name: **VibeMatch 1.0**) is a small, rule-based music recommender written in Python. A listener states a favorite genre, a favorite mood and a target energy level. The program scores each of the 20 songs in `data/songs.csv` against those preferences (up to 4 points: 2 for genre, 1 for mood, and up to 1 for how close the energy is), ranks the songs, and prints the top five with a plain-language reason for each score.
 
-Your goal is to:
+It is a content-based system built on hand-set rules, not a trained machine-learning model. We evaluated it on five user profiles (three standard and two adversarial), ran a weight-shift experiment, and documented what we found. 18 automated tests check ranking, scoring, result limits, explanations, tie-breaking and consistency. We did not measure listener satisfaction or recommendation accuracy, so the results describe how the algorithm behaves, not how well it predicts what people enjoy.
 
-- Represent songs and a user "taste profile" as data
-- Design a scoring rule that turns that data into recommendations
-- Evaluate what your system gets right and wrong
-- Reflect on how this mirrors real world AI recommenders
-
-Replace this paragraph with your own summary of what your version does.
+For the full write-up, see the [Model Card](model_card.md).
 
 ---
 
 ## How The System Works
 
-This section describes the **planned design**. It is a plan for the implementation, not a description of finished code.
+The design below is implemented in `src/recommender.py` and run by `src/main.py`.
 
 ### Overview
 
@@ -29,7 +24,7 @@ The catalog is `data/songs.csv`, with **20 songs**. Each row has an id, title, a
 
 - `genre` and `mood`: text labels (e.g., pop, lofi, rock; happy, chill, intense)
 - `energy`: a number from 0.0 to 1.0
-- `tempo_bpm`, `valence`, `danceability`, `acousticness`: also available, but the first version of the scoring rule does not use them
+- `tempo_bpm`, `valence`, `danceability`, `acousticness`: also available, but the scoring rule does not use them
 
 ### User profile
 
@@ -49,15 +44,17 @@ user_prefs = {
 score = 2 * genre_match + mood_match + (1 - abs(song_energy - target_energy))
 ```
 
-- `genre_match` and `mood_match` are 1 if the song's value equals the user's, otherwise 0.
+- `genre_match` and `mood_match` are 1 if the song's value equals the user's (ignoring capitalization and extra spaces), otherwise 0.
 - The energy term is 1.0 for a perfect match and shrinks as the gap grows.
 - Scores range from **0.0 to 4.0**. For example, "Sunrise City" (pop, happy, 0.82) scores 2 + 1 + 0.98 = **3.98** for the profile above.
 
 ### From scoring to recommendations
 
-1. **Score each song.** The system loads the CSV into a list of dictionaries and loops over every song. For each one it applies the formula and records the score with a short explanation (e.g., "genre match +2.0, energy close +0.98"). Each song is scored on its own, without reference to the others.
+1. **Score each song.** The system loads the CSV into a list of dictionaries and loops over every song. For each one it applies the formula and records the score with a short explanation (e.g., "genre match (+2.0), energy similarity (+0.98)"). Each song is scored on its own, without reference to the others.
 2. **Rank the catalog.** Once every song has a score, the list is sorted from highest to lowest. If two songs have the same score, the one with the lower song ID comes first, so the same input always gives the same output.
 3. **Return the top K.** The first K songs are kept and printed to the terminal with their titles, scores, and reasons.
+
+The same logic is also available as a `Recommender` class (`recommend()` and `explain_recommendation()`), which reuses `score_song()` and `recommend_songs()` instead of repeating the scoring rules.
 
 ### Data flow
 
@@ -84,7 +81,7 @@ flowchart TD
             E --> T
         end
 
-        S["Store score + explanation<br/>e.g. 'genre match (+2.0), energy close (+0.98)'"]
+        S["Store score + explanation<br/>e.g. 'genre match (+2.0), energy similarity (+0.98)'"]
         N{"More songs<br/>left?"}
         R["Sort by score, descending<br/>Tie-breaker: song ID, ascending"]
         K["Keep the top K songs"]
@@ -118,14 +115,14 @@ flowchart TD
     class D output
 ```
 
-### Expected limitations
+### Limitations of the design
 
 - **Genre dominance.** A genre match is worth 2.0, twice as much as a mood match and more than the entire energy term can contribute. A song in the right genre will almost always beat a song in the wrong genre, even if the wrong-genre song matches the user's mood and energy better.
-- **Exact matching.** Genre and mood are compared as exact text, so related labels get no partial credit. A "pop" listener gets nothing for "indie pop," so a happy indie pop song (*Rooftop Lights*, 1.96) scores below an intense pop song (*Gym Hero*, 2.87).
+- **Exact matching.** Genre and mood are compared as exact text, so related labels get no partial credit. A "pop" listener gets nothing for "indie pop," so in the High-Energy Pop run a happy indie pop song (*Rooftop Lights*, 1.91) scores below an intense pop song (*Gym Hero*, 2.92).
 - **Limited diversity.** With only 20 songs, most genres appear once. A user with a niche favorite will always see that one song first however poorly it fits, and the rest of the top K fills up with weak matches. Different users will often see the same handful of songs.
-- **Filter bubbles.** The system rewards songs that look like what the user already said they like, and nothing in the design pushes it to suggest something different. Users would keep seeing more of the same genre and mood, and would never discover other kinds of music.
+- **Filter bubbles.** The system rewards songs that look like what the user already said they like, and nothing in the design pushes it to suggest something different. Users could keep seeing more of the same genre and mood and never discover other kinds of music. This is a hypothesis; we did not test it.
 
-These are expected consequences of the design, and they are meant to be tested and discussed later in the project.
+The first three were observed in our tests (see Limitations and Risks below and the Model Card).
 
 ---
 
@@ -155,13 +152,13 @@ python -m src.main
 
 ### Running Tests
 
-Run the starter tests with:
+Run the automated tests (18 tests) with:
 
 ```bash
-pytest
+python -m pytest -q
 ```
 
-You can add more tests in `tests/test_recommender.py`.
+They are in `tests/test_recommender.py` and cover ranking order, scoring values, result limits, explanations, tie-breaking, and consistency between the `Recommender` class and the functional code.
 
 ---
 
@@ -174,8 +171,6 @@ python -m src.main
 ```
 
 The program loads `data/songs.csv`, then prints the top five recommendations for each of five built-in user profiles. For every song it shows the rank, title, artist, score out of 4.00, and the reasons behind the score. The full terminal output for each profile is in [Recommendation Evaluation — User Profiles](#recommendation-evaluation--user-profiles) below.
-
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
 
 ---
 
@@ -395,38 +390,54 @@ Top recommendations
 
 ## Experiments You Tried
 
-Use this section to document the experiments you ran. For example:
+### Weight shift: genre 2.0 → 1.0, energy 1.0 → 2.0
 
-- What happened when you changed the weight on genre from 2.0 to 0.5
-- What happened when you added tempo or valence to the score
-- How did your system behave for different types of users
+We changed the score to `1.0 * genre_match + 1.0 * mood_match + 2.0 * energy_similarity` (maximum still 4.0) and reran all five profiles. This was an evaluation experiment only: the original weights (2.0 / 1.0 / 1.0) are restored and are what the program uses. The raw outputs are in `baseline_results.txt` and `experiment_results.txt`.
+
+| Profile | Baseline #1 | Experimental #1 | Ranking changed? |
+|---|---|---|---|
+| High-Energy Pop | Sunrise City, 3.97 | Sunrise City, 3.94 | No |
+| Chill Lofi | Midnight Coding, 3.98 | Midnight Coding, 3.96 | No |
+| Deep Intense Rock | Storm Runner, 3.99 | Storm Runner, 3.98 | No |
+| Conflicting Preferences | Winter Nocturne, 2.23 | Gym Hero, 2.96 | **Yes** |
+| Absent Genre | Sunrise City, 1.98 | Sunrise City, 2.96 | No |
+
+- Four of the five profiles kept exactly the same full 20-song ranking; only their scores changed.
+- Conflicting Preferences was the only profile whose ranking changed: Winter Nocturne fell from #1 to #10, Gym Hero rose to #1, and 10 of the 20 songs changed position.
+- Experimental scores ranged from 0.52 to 3.98, within the valid 0 to 4 range.
+
+### Different types of users
+
+We tested three standard profiles (High-Energy Pop, Chill Lofi, Deep Intense Rock) and two adversarial ones: Conflicting Preferences (classical / intense / 0.95) and Absent Genre (k-pop / happy / 0.8). The standard profiles gave strong top results. Under the original weights, the conflicting profile ranked a quiet classical piece first, and the absent-genre profile had no genre match available, so its lower places were filled by energy alone.
+
+### Not tried
+
+We did not add tempo, valence or other features to the score, and we did not test any other weight settings.
 
 ---
 
 ## Limitations and Risks
 
-Summarize some limitations of your recommender.
+**Observed in our tests**
 
-Examples:
+- **Genre dominance:** with the original weights, a quiet classical song (Winter Nocturne, energy 0.18) ranked first for a listener targeting energy 0.95, and Focus Flow (lofi, "focused") outranked Spacewalk Thoughts (ambient, chill) for a chill listener.
+- **Exact matching:** "pop" and "indie pop" are unrelated labels, so related genres get no partial credit.
+- **Tiny catalog:** 15 of the 17 genres have only one song, and in the baseline results 11 of the 25 top-five slots went to songs that matched neither genre nor mood.
+- **No warning for a missing genre:** the k-pop profile got a normal-looking list with no notice that nothing matched.
 
-- It only works on a tiny catalog
-- It does not understand lyrics or language
-- It might over favor one genre or mood
+**Not tested (hypothetical)**
 
-You will go deeper on this in your model card.
+- Filter bubbles, where listeners keep seeing only familiar styles.
+- Whether the system treats different groups of listeners unequally.
+
+**Not measured:** listener satisfaction or recommendation accuracy. The system also ignores lyrics, language, tempo and the other data columns. See Section 6 of the [Model Card](model_card.md) for more.
 
 ---
 
 ## Reflection
 
-Read and complete `model_card.md`:
+For the full write-up, see the [**Model Card**](model_card.md).
 
-[**Model Card**](model_card.md)
+This project helped me understand how a recommendation system can translate user preferences into numerical scores and ranked results without requiring a complex machine-learning model. One of my biggest learning moments was realizing how strongly the choice of scoring weights influences the behavior of an algorithm. A relatively simple formula could produce seemingly personalized recommendations while also generating unexpected results when different preferences conflicted.
 
-Write 1 to 2 paragraphs here about what you learned:
-
-- about how recommenders turn data into predictions
-- about where bias or unfairness could show up in systems like this
-
-
-
+The most surprising result came from the weight-shift experiment. I expected changing the relative importance of genre and energy to affect several recommendation lists, but four of the five profiles retained exactly the same rankings. Only the conflicting-preferences profile changed significantly, with Winter Nocturne falling from first to tenth place. This demonstrated that changes to an algorithm do not necessarily affect every user or produce universally better recommendations.
