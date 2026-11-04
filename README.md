@@ -166,16 +166,55 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Paste a sample of your recommender's output here as a text block so a reader can see what it produces:
+Command (run from the repository root):
 
+```bash
+python -m src.main
 ```
-# e.g.:
-# User profile: genre=indie, mood=chill, energy=low
-# Recommendations:
-#   1. ...
-#   2. ...
-#   3. ...
+
+User profile used: `favorite_genre = pop`, `favorite_mood = happy`, `target_energy = 0.8`.
+
+Output:
+
+```text
+Loading songs from data/songs.csv...
+
+Profile: genre=pop, mood=happy, target energy=0.8
+============================================================
+Top recommendations
+============================================================
+
+#1  Sunrise City by Neon Echo
+    Score: 3.98 / 4.00
+    Why:
+      - genre match (+2.0)
+      - mood match (+1.0)
+      - energy similarity (+0.98)
+
+#2  Gym Hero by Max Pulse
+    Score: 2.87 / 4.00
+    Why:
+      - genre match (+2.0)
+      - energy similarity (+0.87)
+
+#3  Rooftop Lights by Indigo Parade
+    Score: 1.96 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.96)
+
+#4  Calle Luna by Los Faroles
+    Score: 0.96 / 4.00
+    Why:
+      - energy similarity (+0.96)
+
+#5  Night Drive Loop by Neon Echo
+    Score: 0.95 / 4.00
+    Why:
+      - energy similarity (+0.95)
 ```
+
+Each song is scored out of 4.00. The reasons list shows what contributed to the score: +2.0 for a genre match, +1.0 for a mood match, and up to +1.0 for energy similarity (`1 - |song_energy - target_energy|`).
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
 

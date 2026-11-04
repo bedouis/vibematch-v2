@@ -47,10 +47,7 @@ class Recommender:
         return "Explanation placeholder"
 
 def load_songs(csv_path: str) -> List[Dict]:
-    """
-    Loads songs from a CSV file.
-    Required by src/main.py
-    """
+    """Read songs from a CSV file and return a list of dicts with numeric fields converted."""
     print(f"Loading songs from {csv_path}...")
 
     songs = []
@@ -64,7 +61,7 @@ def load_songs(csv_path: str) -> List[Dict]:
     return songs
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """Score one song against the user's preferences; return (score, reasons)."""
+    """Score one song (0.0 to 4.0) against the user's preferences; return (score, list of reasons)."""
     score = 0.0
     reasons = []
 

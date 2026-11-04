@@ -21,6 +21,8 @@ Prompts:
 
 ## 3. How the Model Works  
 
+The recommender compares each song to what a listener says they like. The listener gives three things: a favorite genre, a favorite mood, and how energetic they want the music to feel, on a scale from 0 to 1. Every song in the catalog gets a score out of 4. A song earns 2 points if its genre matches the listener's favorite, 1 point if its mood matches, and up to 1 more point depending on how close its energy is to the listener's target. A song with exactly the right energy gets the full point, and the point shrinks as the energy gets further away. Once every song has a score, the songs are sorted from highest to lowest and the top few are shown, each with a short note explaining where its points came from. If two songs tie, the one that appears earlier in the catalog (the lower ID number) comes first. The system doesn't learn from other listeners. It only looks at the song's own genre, mood and energy, and it ignores tempo, danceability, and the other columns in the data.
+
 Explain your scoring approach in simple language.  
 
 Prompts:  
