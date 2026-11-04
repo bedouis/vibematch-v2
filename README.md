@@ -17,31 +17,29 @@ Replace this paragraph with your own summary of what your version does.
 
 ## How The System Works
 
-This section describes the **planned design** of the recommender. It is a plan for the implementation, not a description of finished code.
+This section describes the **planned design**. It is a plan for the implementation, not a description of finished code.
 
-### Approach: content-based recommendation
+### Overview
 
-The system is content-based: it recommends songs by comparing each song's own attributes (genre, mood, energy) to a user's stated preferences. It does not use other users' listening history, so it needs no data about anyone but the current user.
+This is a **content-based** recommender. It compares each song's own attributes to what a user says they like, and it needs no data from other listeners. Every song gets a score for how well it fits the user, the songs are sorted by score, and the best few are returned.
 
 ### Dataset
 
-The catalog is `data/songs.csv`, containing **20 songs**. Each row has an id, title, artist, and several audio features. The features relevant to scoring are:
+The catalog is `data/songs.csv`, with **20 songs**. Each row has an id, title, artist, and these attributes:
 
-- `genre`: categorical label (e.g., pop, lofi, rock)
-- `mood`: categorical label (e.g., happy, chill, intense)
-- `energy`: float from 0.0 to 1.0
+- `genre` and `mood`: text labels (e.g., pop, lofi, rock; happy, chill, intense)
+- `energy`: a number from 0.0 to 1.0
+- `tempo_bpm`, `valence`, `danceability`, `acousticness`: also available, but the first version of the scoring rule does not use them
 
-The other columns (`tempo_bpm`, `valence`, `danceability`, `acousticness`) are available but not used in the first version of the scoring rule.
+### User profile
 
-### User preferences
-
-A user's taste is represented as a dictionary with three attributes:
+A user is described by a dictionary with three attributes:
 
 ```python
 user_prefs = {
-    "favorite_genre": "pop",    # genre the user prefers
-    "favorite_mood": "happy",   # mood the user prefers
-    "target_energy": 0.80,      # float 0.0 to 1.0, the energy level the user wants
+    "favorite_genre": "pop",    # the genre the user prefers
+    "favorite_mood": "happy",   # the mood the user prefers
+    "target_energy": 0.80,      # 0.0 to 1.0, the energy level the user wants
 }
 ```
 
@@ -51,21 +49,15 @@ user_prefs = {
 score = 2 * genre_match + mood_match + (1 - abs(song_energy - target_energy))
 ```
 
-- `genre_match` is 1 if the song's genre equals `favorite_genre`, otherwise 0.
-- `mood_match` is 1 if the song's mood equals `favorite_mood`, otherwise 0.
-- The energy term is 1.0 for a perfect energy match and shrinks as the gap grows.
-- Scores range from **0.0 to 4.0**.
+- `genre_match` and `mood_match` are 1 if the song's value equals the user's, otherwise 0.
+- The energy term is 1.0 for a perfect match and shrinks as the gap grows.
+- Scores range from **0.0 to 4.0**. For example, "Sunrise City" (pop, happy, 0.82) scores 2 + 1 + 0.98 = **3.98** for the profile above.
 
-Example: for a user who wants pop / happy / 0.80, "Sunrise City" (pop, happy, 0.82) scores 2 + 1 + 0.98 = **3.98**.
+### From scoring to recommendations
 
-### Scoring vs. ranking
-
-These are two separate steps:
-
-1. **Scoring** works on one song at a time. The formula takes a single song and the user's preferences and returns a number and a short explanation. It knows nothing about the other songs.
-2. **Ranking** works on the whole catalog. After every song has been scored, the list is sorted by score from highest to lowest, and the top K songs are returned.
-
-Ties are broken deterministically so the same input always produces the same output. Songs are sorted by score (rounded to 6 decimals), then genre match, then mood match, then smaller energy gap, then lower `id`.
+1. **Score each song.** The system loads the CSV into a list of dictionaries and loops over every song. For each one it applies the formula and records the score with a short explanation (e.g., "genre match +2.0, energy close +0.98"). Each song is scored on its own, without reference to the others.
+2. **Rank the catalog.** Once every song has a score, the list is sorted from highest to lowest. If two songs have the same score, the one with the lower song ID comes first, so the same input always gives the same output.
+3. **Return the top K.** The first K songs are kept and printed to the terminal with their titles, scores, and reasons.
 
 ### Data flow
 
@@ -94,7 +86,7 @@ flowchart TD
 
         S["Store score + explanation<br/>e.g. 'genre match (+2.0), energy close (+0.98)'"]
         N{"More songs<br/>left?"}
-        R["Sort by score, descending<br/>Tie-breakers: genre match, mood match,<br/>smaller energy gap, then lower id"]
+        R["Sort by score, descending<br/>Tie-breaker: song ID, ascending"]
         K["Keep the top K songs"]
     end
 
@@ -107,7 +99,9 @@ flowchart TD
     C --> L
     L --> I
     U --> I
-    I --> SCORE
+    I --> G
+    I --> M
+    I --> E
     T --> S
     S --> N
     N -- "yes" --> I
@@ -124,9 +118,14 @@ flowchart TD
     class D output
 ```
 
-### Expected limitations and potential biases
+### Expected limitations
 
-Exact string matching on genre means closely related genres get no partial credit. A "pop" listener receives nothing for "indie pop" songs like *Rooftop Lights*, so a happy indie pop track scores 1.96 while an intense pop track like *Gym Hero* scores 2.87. The genre weight is also large: a genre-only match (worth at least 2.0) will almost always outrank a mood-only match (at most 2.0), so mood and energy mostly reorder songs *within* a genre instead of competing with it. With only 20 songs, most genres appear exactly once, so a user with a niche favorite genre will always see that one song first no matter how poorly its mood and energy fit, and the top-K list quickly fills with weak matches. The small catalog also limits diversity: the same few songs surface for many different profiles, and users whose tastes fall outside the covered genres are underserved. These behaviors are expected from the design and are meant to be tested later in the project.
+- **Genre dominance.** A genre match is worth 2.0, twice as much as a mood match and more than the entire energy term can contribute. A song in the right genre will almost always beat a song in the wrong genre, even if the wrong-genre song matches the user's mood and energy better.
+- **Exact matching.** Genre and mood are compared as exact text, so related labels get no partial credit. A "pop" listener gets nothing for "indie pop," so a happy indie pop song (*Rooftop Lights*, 1.96) scores below an intense pop song (*Gym Hero*, 2.87).
+- **Limited diversity.** With only 20 songs, most genres appear once. A user with a niche favorite will always see that one song first however poorly it fits, and the rest of the top K fills up with weak matches. Different users will often see the same handful of songs.
+- **Filter bubbles.** The system rewards songs that look like what the user already said they like, and nothing in the design pushes it to suggest something different. Users would keep seeing more of the same genre and mood, and would never discover other kinds of music.
+
+These are expected consequences of the design, and they are meant to be tested and discussed later in the project.
 
 ---
 
