@@ -139,6 +139,7 @@ These are expected consequences of the design, and they are meant to be tested a
    python -m venv .venv
    source .venv/bin/activate      # Mac or Linux
    .venv\Scripts\activate         # Windows
+   ```
 
 2. Install dependencies
 
@@ -166,57 +167,229 @@ You can add more tests in `tests/test_recommender.py`.
 
 ## Sample Recommendation Output
 
-Command (run from the repository root):
+Run the recommender from the repository root:
 
 ```bash
 python -m src.main
 ```
 
-User profile used: `favorite_genre = pop`, `favorite_mood = happy`, `target_energy = 0.8`.
+The program loads `data/songs.csv`, then prints the top five recommendations for each of five built-in user profiles. For every song it shows the rank, title, artist, score out of 4.00, and the reasons behind the score. The full terminal output for each profile is in [Recommendation Evaluation — User Profiles](#recommendation-evaluation--user-profiles) below.
 
-Output:
+**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
+
+---
+
+## Recommendation Evaluation — User Profiles
+
+Baseline run with the original scoring weights (genre +2.0, mood +1.0, energy similarity up to +1.0). Command: `python -m src.main`. Each block below is the program's actual terminal output for one profile, split at the profile boundaries.
+
+### High-Energy Pop
+
+- Genre: `pop`
+- Mood: `happy`
+- Target energy: `0.85`
 
 ```text
-Loading songs from data/songs.csv...
-
-Profile: genre=pop, mood=happy, target energy=0.8
+Profile: High-Energy Pop (genre=pop, mood=happy, target energy=0.85)
 ============================================================
 Top recommendations
 ============================================================
 
 #1  Sunrise City by Neon Echo
+    Score: 3.97 / 4.00
+    Why:
+      - genre match (+2.0)
+      - mood match (+1.0)
+      - energy similarity (+0.97)
+
+#2  Gym Hero by Max Pulse
+    Score: 2.92 / 4.00
+    Why:
+      - genre match (+2.0)
+      - energy similarity (+0.92)
+
+#3  Rooftop Lights by Indigo Parade
+    Score: 1.91 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.91)
+
+#4  Calle Luna by Los Faroles
+    Score: 0.99 / 4.00
+    Why:
+      - energy similarity (+0.99)
+
+#5  Storm Runner by Voltline
+    Score: 0.94 / 4.00
+    Why:
+      - energy similarity (+0.94)
+```
+
+### Chill Lofi
+
+- Genre: `lofi`
+- Mood: `chill`
+- Target energy: `0.4`
+
+```text
+Profile: Chill Lofi (genre=lofi, mood=chill, target energy=0.4)
+============================================================
+Top recommendations
+============================================================
+
+#1  Midnight Coding by LoRoom
     Score: 3.98 / 4.00
     Why:
       - genre match (+2.0)
       - mood match (+1.0)
       - energy similarity (+0.98)
 
-#2  Gym Hero by Max Pulse
-    Score: 2.87 / 4.00
+#2  Library Rain by Paper Lanterns
+    Score: 3.95 / 4.00
     Why:
       - genre match (+2.0)
-      - energy similarity (+0.87)
+      - mood match (+1.0)
+      - energy similarity (+0.95)
 
-#3  Rooftop Lights by Indigo Parade
+#3  Focus Flow by LoRoom
+    Score: 3.00 / 4.00
+    Why:
+      - genre match (+2.0)
+      - energy similarity (+1.00)
+
+#4  Spacewalk Thoughts by Orbit Bloom
+    Score: 1.88 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.88)
+
+#5  Coffee Shop Stories by Slow Stereo
+    Score: 0.97 / 4.00
+    Why:
+      - energy similarity (+0.97)
+```
+
+### Deep Intense Rock
+
+- Genre: `rock`
+- Mood: `intense`
+- Target energy: `0.92`
+
+```text
+Profile: Deep Intense Rock (genre=rock, mood=intense, target energy=0.92)
+============================================================
+Top recommendations
+============================================================
+
+#1  Storm Runner by Voltline
+    Score: 3.99 / 4.00
+    Why:
+      - genre match (+2.0)
+      - mood match (+1.0)
+      - energy similarity (+0.99)
+
+#2  Gym Hero by Max Pulse
+    Score: 1.99 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.99)
+
+#3  Pulse Horizon by Static Bloom
+    Score: 0.96 / 4.00
+    Why:
+      - energy similarity (+0.96)
+
+#4  Iron Cathedral by Black Meridian
+    Score: 0.94 / 4.00
+    Why:
+      - energy similarity (+0.94)
+
+#5  Calle Luna by Los Faroles
+    Score: 0.92 / 4.00
+    Why:
+      - energy similarity (+0.92)
+```
+
+### Conflicting Preferences
+
+- Genre: `classical`
+- Mood: `intense`
+- Target energy: `0.95`
+
+```text
+Profile: Conflicting Preferences (genre=classical, mood=intense, target energy=0.95)
+============================================================
+Top recommendations
+============================================================
+
+#1  Winter Nocturne by Elena Varga
+    Score: 2.23 / 4.00
+    Why:
+      - genre match (+2.0)
+      - energy similarity (+0.23)
+
+#2  Gym Hero by Max Pulse
+    Score: 1.98 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.98)
+
+#3  Storm Runner by Voltline
     Score: 1.96 / 4.00
     Why:
       - mood match (+1.0)
       - energy similarity (+0.96)
 
-#4  Calle Luna by Los Faroles
+#4  Pulse Horizon by Static Bloom
+    Score: 0.99 / 4.00
+    Why:
+      - energy similarity (+0.99)
+
+#5  Iron Cathedral by Black Meridian
+    Score: 0.97 / 4.00
+    Why:
+      - energy similarity (+0.97)
+```
+
+### Absent Genre
+
+- Genre: `k-pop`
+- Mood: `happy`
+- Target energy: `0.8`
+
+```text
+Profile: Absent Genre (genre=k-pop, mood=happy, target energy=0.8)
+============================================================
+Top recommendations
+============================================================
+
+#1  Sunrise City by Neon Echo
+    Score: 1.98 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.98)
+
+#2  Rooftop Lights by Indigo Parade
+    Score: 1.96 / 4.00
+    Why:
+      - mood match (+1.0)
+      - energy similarity (+0.96)
+
+#3  Calle Luna by Los Faroles
     Score: 0.96 / 4.00
     Why:
       - energy similarity (+0.96)
 
-#5  Night Drive Loop by Neon Echo
+#4  Night Drive Loop by Neon Echo
     Score: 0.95 / 4.00
     Why:
       - energy similarity (+0.95)
+
+#5  Storm Runner by Voltline
+    Score: 0.89 / 4.00
+    Why:
+      - energy similarity (+0.89)
 ```
-
-Each song is scored out of 4.00. The reasons list shows what contributed to the score: +2.0 for a genre match, +1.0 for a mood match, and up to +1.0 for energy similarity (`1 - |song_energy - target_energy|`).
-
-**Screenshot or video** *(optional)*: <!-- Insert a screenshot or demo video link here -->
 
 ---
 

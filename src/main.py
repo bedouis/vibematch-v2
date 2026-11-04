@@ -12,18 +12,28 @@ You will implement the functions in recommender.py:
 from src.recommender import load_songs, recommend_songs
 
 
+PROFILES = {
+    "High-Energy Pop": {"favorite_genre": "pop", "favorite_mood": "happy", "target_energy": 0.85},
+    "Chill Lofi": {"favorite_genre": "lofi", "favorite_mood": "chill", "target_energy": 0.40},
+    "Deep Intense Rock": {"favorite_genre": "rock", "favorite_mood": "intense", "target_energy": 0.92},
+    "Conflicting Preferences": {"favorite_genre": "classical", "favorite_mood": "intense", "target_energy": 0.95},
+    "Absent Genre": {"favorite_genre": "k-pop", "favorite_mood": "happy", "target_energy": 0.80},
+}
+
+
 def main() -> None:
-    songs = load_songs("data/songs.csv") 
+    songs = load_songs("data/songs.csv")
 
-    # Starter example profile
-    user_prefs = {"favorite_genre": "pop", "favorite_mood": "happy", "target_energy": 0.8}
+    for name, user_prefs in PROFILES.items():
+        recommendations = recommend_songs(user_prefs, songs, k=5)
+        print_recommendations(name, user_prefs, recommendations)
 
-    recommendations = recommend_songs(user_prefs, songs, k=5)
 
+def print_recommendations(name: str, user_prefs: dict, recommendations: list) -> None:
     print(
-        f"\nProfile: genre={user_prefs['favorite_genre']}, "
+        f"\nProfile: {name} (genre={user_prefs['favorite_genre']}, "
         f"mood={user_prefs['favorite_mood']}, "
-        f"target energy={user_prefs['target_energy']}"
+        f"target energy={user_prefs['target_energy']})"
     )
     print("=" * 60)
     print("Top recommendations")
