@@ -1,3 +1,4 @@
+import csv
 from typing import List, Dict, Tuple, Optional
 from dataclasses import dataclass
 
@@ -50,24 +51,44 @@ def load_songs(csv_path: str) -> List[Dict]:
     Loads songs from a CSV file.
     Required by src/main.py
     """
-    # TODO: Implement CSV loading logic
     print(f"Loading songs from {csv_path}...")
-    return []
+
+    songs = []
+    with open(csv_path, newline="", encoding="utf-8") as f:
+        for row in csv.DictReader(f):
+            # DictReader gives every value as a string, so convert numeric columns.
+            row["id"] = int(row["id"])
+            for field in ("energy", "tempo_bpm", "valence", "danceability", "acousticness"):
+                row[field] = float(row[field])
+            songs.append(row)
+    return songs
 
 def score_song(user_prefs: Dict, song: Dict) -> Tuple[float, List[str]]:
-    """
-    Scores a single song against user preferences.
-    Required by recommend_songs() and src/main.py
-    """
-    # TODO: Implement scoring logic using your Algorithm Recipe from Phase 2.
-    # Expected return format: (score, reasons)
-    return []
+    """Score one song against the user's preferences; return (score, reasons)."""
+    score = 0.0
+    reasons = []
+
+    if song["genre"].strip().lower() == user_prefs["favorite_genre"].strip().lower():
+        score += 2.0
+        reasons.append("genre match (+2.0)")
+
+    if song["mood"].strip().lower() == user_prefs["favorite_mood"].strip().lower():
+        score += 1.0
+        reasons.append("mood match (+1.0)")
+
+    energy_similarity = 1.0 - abs(song["energy"] - user_prefs["target_energy"])
+    score += energy_similarity
+    reasons.append(f"energy similarity (+{energy_similarity:.2f})")
+
+    return score, reasons
 
 def recommend_songs(user_prefs: Dict, songs: List[Dict], k: int = 5) -> List[Tuple[Dict, float, str]]:
-    """
-    Functional implementation of the recommendation logic.
-    Required by src/main.py
-    """
-    # TODO: Implement scoring and ranking logic
-    # Expected return format: (song_dict, score, explanation)
-    return []
+    """Score every song and return the top k as (song, score, explanation), best first."""
+    scored = []
+    for song in songs:
+        score, reasons = score_song(user_prefs, song)
+        scored.append((song, score, ", ".join(reasons)))
+
+    # Highest score first; equal scores fall back to the lower song id.
+    ranked = sorted(scored, key=lambda item: (-item[1], item[0]["id"]))
+    return ranked[:max(k, 0)]
