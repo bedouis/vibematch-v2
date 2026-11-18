@@ -17,3 +17,4 @@ venv/
 # Secrets
 .env
 .streamlit/secrets.toml
+data/raw_cache/
