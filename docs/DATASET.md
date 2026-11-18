@@ -2,7 +2,7 @@
 
 A 5,000-track catalog of real music metadata, selected deterministically from the MTG-Jamendo Dataset. The V1 catalog (`data/songs.csv`) is unchanged.
 
-An earlier 2,500-track build (`data/jamendo_2500.csv`) is no longer used by the application. It was produced by the same script and rules, and every one of its tracks is also in the 5,000-track catalog.
+An earlier 2,500-track build (`data/jamendo_2500.csv`) is no longer used by the application and is no longer in the working tree (it remains in git history, commit `5cb012a`). It was produced by the same script and rules, and every one of its tracks is also in the 5,000-track catalog.
 
 ## Provenance
 

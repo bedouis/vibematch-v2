@@ -1,0 +1,67 @@
+flowchart TD
+    USER(["Listener<br/>types a request"])
+
+    subgraph APP["Streamlit app - app.py"]
+        UI["Search form 'Find my vibe'<br/>spinner, interpretation panel,<br/>up to 10 result cards"]
+        STATE["st.session_state<br/>keeps the last successful result"]
+        ERR["Fixed user-safe error messages"]
+    end
+
+    CATALOG[("Jamendo catalog<br/>data/jamendo_5000.csv<br/>5,000 real tracks")]
+
+    subgraph LOAD["Catalog loading - src/v2_recommender.py"]
+        LOADER["load_v2_catalog<br/>validates every record<br/>cached once by Streamlit"]
+        VOCAB["catalog_vocabulary<br/>supported genre and mood tags"]
+    end
+
+    subgraph PIPE["Pipeline - src/pipeline.py run_pipeline<br/>one Gemini call per request"]
+        subgraph INTENTMOD["Intent interpreter - src/intent.py"]
+            QCHECK["validate_query<br/>not blank, 500 characters at most"]
+            PROMPT["Prompt = instructions + full vocabulary<br/>the request is sent as JSON data"]
+            GEMINI{{"Gemini API - external service<br/>default model gemini-3.5-flash-lite<br/>structured JSON output"}}
+            RAW["JSON response<br/>genres, moods"]
+            VALID["parse_model_response<br/>Python checks structure, types,<br/>tags per category, at most 2 each,<br/>at least one tag"]
+            INTENT["MusicIntent<br/>genres, moods"]
+            QCHECK --> PROMPT --> GEMINI --> RAW --> VALID --> INTENT
+        end
+        subgraph RANKMOD["Recommender - src/v2_recommender.py"]
+            RANK["recommend_v2 - deterministic<br/>genre match +2, mood match +1, maximum 3<br/>sort by score, then track ID<br/>zero scores excluded, top 10"]
+            EXPL["Explanation text<br/>fixed template over the tags<br/>that actually matched"]
+            RANK --> EXPL
+        end
+        INTENT --> RANK
+    end
+
+    subgraph REL["Reliability checks - separate from the live path"]
+        TESTS["pytest suite - V1 and V2 tests<br/>mocked Gemini client, no network, no key"]
+        OFFLINE["Offline evaluation - scripts/evaluate_v2.py<br/>12 scenarios and 18 invalid-input cases<br/>reference interpretations, not Gemini output<br/>writes docs/evaluation_results.csv"]
+    end
+
+    HUMAN["Human evaluation - manual<br/>live UI observations, exports in docs/evidence/live<br/>docs/live_recommendations.csv"]
+
+    USER --> UI
+    UI --> QCHECK
+    CATALOG --> LOADER --> VOCAB
+    VOCAB -. "tag vocabulary" .-> PROMPT
+    VOCAB -. "tag vocabulary" .-> VALID
+    LOADER -. "catalog records" .-> RANK
+    EXPL --> UI
+    PIPE -. "rejected or failed request" .-> ERR
+    ERR --> UI
+    UI --> STATE
+
+    CATALOG -. "same catalog" .-> OFFLINE
+    TESTS -. "exercise" .-> PIPE
+    OFFLINE -. "exercises validator, pipeline and recommender - never calls Gemini" .-> PIPE
+    UI -. "observed by a person" .-> HUMAN
+
+    classDef ext fill:#fde68a,stroke:#b45309,color:#451a03
+    classDef data fill:#dbeafe,stroke:#2563eb,color:#1e3a8a
+    classDef det fill:#dcfce7,stroke:#16a34a,color:#14532d
+    classDef rel fill:#f3e8ff,stroke:#7e22ce,color:#3b0764
+    classDef manual fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-dasharray: 5 3
+    class GEMINI ext
+    class CATALOG,LOADER,VOCAB data
+    class QCHECK,VALID,RANK,EXPL det
+    class TESTS,OFFLINE rel
+    class HUMAN manual
