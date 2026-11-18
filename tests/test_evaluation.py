@@ -373,3 +373,88 @@ def test_script_has_no_api_key_or_client_construction():
 def test_network_is_blocked_in_this_module():
     with pytest.raises(AssertionError, match="real network"):
         socket.create_connection(("example.com", 80))
+
+
+# ---- live evidence: manually recorded CSV vs preserved UI exports ----------
+
+import re  # noqa: E402
+from collections import Counter  # noqa: E402
+
+LIVE_CSV = ROOT / "docs" / "live_recommendations.csv"
+LIVE_DIR = ROOT / "docs" / "evidence" / "live"
+EVAL_DOC = ROOT / "docs" / "EVALUATION.md"
+
+
+def _live_by_query():
+    with open(LIVE_CSV, newline="", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
+    grouped = {}
+    for r in rows:
+        grouped.setdefault(r["query_id"], []).append(r)
+    return rows, grouped
+
+
+def _export_cards(n):
+    """(rank, title, artist, score) for each result card in the exported UI page."""
+    text = (LIVE_DIR / f"query{n}.md").read_text(encoding="utf-8")
+    unescape = lambda s: re.sub(r"\\(.)", r"\1", s)
+    return [(int(rank), unescape(title), unescape(artist), int(score))
+            for rank, title, artist, score in
+            re.findall(r"\*\*(\d+)\\\. (.+?)\*\*\n\n(.+?)\n\n\*\*(\d)/3\*\*", text)]
+
+
+def test_live_csv_has_30_rows_with_expected_query_ids_ranks_and_scores():
+    rows, by_query = _live_by_query()
+    assert len(rows) == 30
+    assert list(by_query) == ["Q1", "Q2", "Q4"]                      # Q3 and Q5 returned no tracks
+    expected_scores = {"Q1": {3: 10}, "Q2": {1: 10}, "Q4": {3: 9, 2: 1}}
+    for query_id, recs in by_query.items():
+        assert [int(r["rank"]) for r in recs] == list(range(1, 11))
+        scores = [int(r["score_out_of_3"]) for r in recs]
+        assert scores == sorted(scores, reverse=True)
+        assert dict(Counter(scores)) == expected_scores[query_id]
+        for r in recs:      # score must follow the documented rule applied to the recorded matched tags
+            assert int(r["score_out_of_3"]) == (2 if r["matched_genres"] else 0) + (1 if r["matched_moods"] else 0)
+
+
+def test_live_artist_diversity_numbers():
+    _, by_query = _live_by_query()
+    distinct = {q: len({r["artist"].casefold() for r in recs}) for q, recs in by_query.items()}
+    assert distinct == {"Q1": 7, "Q2": 3, "Q4": 6}
+    assert sum(d / 10 for d in distinct.values()) / 3 == pytest.approx(0.5333, abs=1e-4)
+
+
+def test_offline_diversity_means_quoted_in_the_doc():
+    with open(RESULTS_CSV, newline="", encoding="utf-8") as fh:
+        ok = [r for r in csv.DictReader(fh) if r["execution_status"] == "ok"]
+    all_sets = [float(r["artist_diversity_at_10"]) for r in ok]
+    full_lists = [float(r["artist_diversity_at_10"]) for r in ok if r["recommendation_count"] == "10"]
+    assert (len(all_sets), len(full_lists)) == (10, 9)
+    assert sum(all_sets) / len(all_sets) == pytest.approx(0.650)
+    assert sum(full_lists) / len(full_lists) == pytest.approx(0.6111, abs=1e-4)
+    doc = EVAL_DOC.read_text(encoding="utf-8")
+    assert "0.650" in doc and "0.611" in doc and "0.533" in doc
+
+
+def test_live_csv_agrees_with_preserved_ui_exports():
+    _, by_query = _live_by_query()
+    for query_id, n in (("Q1", 1), ("Q2", 2), ("Q4", 4)):
+        recorded = [(int(r["rank"]), r["track_title"], r["artist"], int(r["score_out_of_3"]))
+                    for r in by_query[query_id]]
+        assert _export_cards(n) == recorded, query_id
+    from app import ERROR_MESSAGES
+    from src.intent import InvalidModelResponseError, NoConfidentInterpretationError
+    for n, error_type in ((3, InvalidModelResponseError), (5, NoConfidentInterpretationError)):
+        text = (LIVE_DIR / f"query{n}.md").read_text(encoding="utf-8")
+        assert ERROR_MESSAGES[error_type] in text
+        assert _export_cards(n) == [] and "Top matches" not in text
+
+
+def test_live_evidence_files_exist_and_doc_links_resolve():
+    assert [p.name for p in sorted(LIVE_DIR.glob("query*.md"))] == [f"query{i}.md" for i in range(1, 6)]
+    assert (LIVE_DIR / "README.md").is_file()
+    doc = EVAL_DOC.read_text(encoding="utf-8")
+    linked = set(re.findall(r"\]\((evidence/live/[^)]+)\)", doc))
+    assert {f"evidence/live/query{i}.md" for i in range(1, 6)} <= linked
+    for rel in linked:
+        assert (ROOT / "docs" / rel).exists(), rel
