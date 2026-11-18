@@ -238,7 +238,13 @@ The default `gemini-3.5-flash-lite` worked in live testing; `gemini-3.8-flash` r
 
 Streamlit prints a local URL (normally http://localhost:8501). Type a request such as *Relaxing ambient music for reading*, press **Find my vibe**, and review the interpretation panel and result cards.
 
-**Screenshot.** No screenshot is included in this repository yet. To add one, run the app, save a screenshot as `assets/vibematch-ui.png`, and reference it here; see [assets/README.md](assets/README.md). The text exports of the real pages that were captured are in [docs/evidence/live/](docs/evidence/live/README.md).
+**Screenshot.** The app after a live search for the peaceful, relaxing rock request (sample Q4 below): the search form, the interpretation panel showing the tags Gemini chose, and the first two of the ten result cards.
+
+<p align="center">
+  <img src="assets/vibematch-ui.png" alt="VibeMatch 2.0 Streamlit page: the query 'Find me peaceful, relaxing rock music that isn't too aggressive.', the Gemini interpretation (genre rock; moods peaceful and relaxing), and result cards 1 and 2 (Flying on the Sea II by Giulio Nightfall and Why by Kai Klaas, each scoring 3/3) with matched tags and an Open on Jamendo button" width="600">
+</p>
+
+*Captured from a live run on the 5,000-track catalog; the page continues below the image with the remaining result cards. The text exports of the five real pages that were captured are in [docs/evidence/live/](docs/evidence/live/README.md).*
 
 ## Verified sample interactions
 
