@@ -1,0 +1,31 @@
+query_id,rank,track_title,artist,score_out_of_3,matched_genres,matched_moods
+Q1,1,New day,Alexander Blu,3,ambient,relaxing
+Q1,2,La gruta del agua,Carlos Saura,3,ambient,relaxing
+Q1,3,FEAT THE VIBE - The dream that you wanted,Alterlabel,3,ambient,relaxing
+Q1,4,Sadness locked in a song,Stidiek,3,ambient,relaxing
+Q1,5,Moods around the World,Dreamweaver,3,ambient,relaxing
+Q1,6,Soundscape I,Dreamweaver,3,ambient,relaxing
+Q1,7,Soundscape III,Dreamweaver,3,ambient,relaxing
+Q1,8,The Simple,Dreamweaver,3,ambient,relaxing
+Q1,9,Choose To Love,Giac & Juan,3,ambient,relaxing
+Q1,10,Lounge 1.0,Dr. Pimp,3,ambient,relaxing
+Q2,1,Virtual defect,POSITIV HATE,1,,energetic
+Q2,2,Hymn of Darkness,POSITIV HATE,1,,energetic
+Q2,3,Destruction of christrian's dream,POSITIV HATE,1,,energetic
+Q2,4,Nature,POSITIV HATE,1,,energetic
+Q2,5,First Take,Piergiorgio Lucidi,1,,energetic
+Q2,6,JazzMoves,Piergiorgio Lucidi,1,,energetic
+Q2,7,Point Of Exit,Piergiorgio Lucidi,1,,energetic
+Q2,8,Spontaneous,Piergiorgio Lucidi,1,,energetic
+Q2,9,Critic,Piergiorgio Lucidi,1,,energetic
+Q2,10,Autumn tales,St Adam,1,,energetic
+Q4,1,Flying on the Sea II,Giulio Nightfall,3,rock,relaxing
+Q4,2,Why,Kai Klaas,3,rock,relaxing
+Q4,3,Psalm 148,Jason Silver,3,rock,relaxing
+Q4,4,Faster than speed of Light,Ant_DK,3,rock,relaxing
+Q4,5,Cubic Earth,Ant_DK,3,rock,relaxing
+Q4,6,Wind of the Universe,Ant_DK,3,rock,relaxing
+Q4,7,Intro,Ant_DK,3,rock,relaxing
+Q4,8,Road To Sun,Ant_DK,3,rock,relaxing
+Q4,9,Toward the Infinite,The Silkway Riders,3,rock,relaxing
+Q4,10,Anastasia,AS-POTIRONT!,2,rock,
