@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build data/jamendo_2500.csv from official MTG-Jamendo metadata.
+"""Build data/jamendo_5000.csv from official MTG-Jamendo metadata.
 
 Inputs (both from https://github.com/MTG/mtg-jamendo-dataset, directory data/):
   raw_30s_cleantags.tsv  TRACK_ID ARTIST_ID ALBUM_ID PATH DURATION TAGS...
@@ -19,7 +19,7 @@ Usage:
   python scripts/prepare_jamendo.py \
       --tags data/raw_cache/raw_30s_cleantags.tsv \
       --meta data/raw_cache/raw.meta.tsv \
-      --output data/jamendo_2500.csv
+      --output data/jamendo_5000.csv
 """
 
 from __future__ import annotations
@@ -50,7 +50,7 @@ OUTPUT_FIELDS = ["track_id", "title", "artist", "genres", "moods", "instruments"
 TRACK_ID_RE = re.compile(r"^track_\d+$")
 URL_RE = re.compile(r"^https?://\S+$")
 
-DEFAULT_SIZE = 2500
+DEFAULT_SIZE = 5000
 DEFAULT_MAX_PER_ARTIST = 5
 
 # Exclusion reasons, listed in the order the rules are applied. Each source
@@ -373,7 +373,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--tags", type=Path, default=REPO_ROOT / "data/raw_cache/raw_30s_cleantags.tsv")
     parser.add_argument("--meta", type=Path, default=REPO_ROOT / "data/raw_cache/raw.meta.tsv")
-    parser.add_argument("--output", type=Path, default=REPO_ROOT / "data/jamendo_2500.csv")
+    parser.add_argument("--output", type=Path, default=REPO_ROOT / "data/jamendo_5000.csv")
     parser.add_argument("--size", type=int, default=DEFAULT_SIZE)
     parser.add_argument("--max-per-artist", type=int, default=DEFAULT_MAX_PER_ARTIST)
     args = parser.parse_args(argv)

@@ -1,4 +1,4 @@
-"""Tests for scripts/prepare_jamendo.py and the generated data/jamendo_2500.csv."""
+"""Tests for scripts/prepare_jamendo.py and the generated data/jamendo_5000.csv."""
 
 import csv
 import importlib.util
@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-CATALOG = ROOT / "data" / "jamendo_2500.csv"
+CATALOG = ROOT / "data" / "jamendo_5000.csv"
 
 _spec = importlib.util.spec_from_file_location("prepare_jamendo", ROOT / "scripts" / "prepare_jamendo.py")
 pj = importlib.util.module_from_spec(_spec)
@@ -276,8 +276,8 @@ def test_catalog_has_no_fabricated_numeric_columns(catalog):
 def test_catalog_size_and_unique_ids(catalog):
     _, rows = catalog
     ids = [r["track_id"] for r in rows]
-    assert len(rows) == 2500
-    assert len(set(ids)) == 2500
+    assert len(rows) == 5000
+    assert len(set(ids)) == 5000
     assert ids == sorted(ids)
     assert all(pj.TRACK_ID_RE.match(i) for i in ids)
 
@@ -305,9 +305,9 @@ def test_catalog_artist_cap_and_diversity(catalog):
     _, rows = catalog
     artists = Counter(r["artist"].casefold() for r in rows)
     assert max(artists.values()) <= pj.DEFAULT_MAX_PER_ARTIST
-    assert len(artists) >= 500
+    assert len(artists) >= 1000
     genres = {g for r in rows for g in json.loads(r["genres"])}
-    assert len(genres) >= 100
+    assert len(genres) >= 200
 
 
 def test_catalog_regeneration_matches_if_sources_cached(tmp_path):

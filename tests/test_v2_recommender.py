@@ -18,7 +18,7 @@ from src.v2_recommender import (
     split_supported_tags,
 )
 
-REAL_CATALOG = Path(__file__).resolve().parent.parent / "data" / "jamendo_2500.csv"
+REAL_CATALOG = Path(__file__).resolve().parent.parent / "data" / "jamendo_5000.csv"
 HEADER = "track_id,title,artist,genres,moods,instruments,track_url\n"
 
 
@@ -323,8 +323,8 @@ def real_catalog():
 
 
 def test_real_catalog_loads_entirely(real_catalog):
-    assert len(real_catalog) == 2500
-    assert len({t.track_id for t in real_catalog}) == 2500
+    assert len(real_catalog) == 5000
+    assert len({t.track_id for t in real_catalog}) == 5000
     assert all(t.genres and t.moods and t.track_url.startswith("http") for t in real_catalog)
     assert any(t.instruments == () for t in real_catalog)       # empty instruments are fine
     assert any(t.instruments for t in real_catalog)
@@ -332,13 +332,13 @@ def test_real_catalog_loads_entirely(real_catalog):
 
 def test_real_catalog_vocabulary_matches_docs(real_catalog):
     vocab = catalog_vocabulary(real_catalog)
-    assert len(vocab.genres) == 221 and len(vocab.moods) == 209
+    assert len(vocab.genres) == 221 and len(vocab.moods) == 216
     assert {"rock", "electronic"} <= vocab.genres and {"calm", "happy"} <= vocab.moods
 
 
 def test_real_catalog_recommendations(real_catalog):
-    results = recommend_v2(real_catalog, genres=["rock", "poprock"], moods=["calm"], k=5)
-    assert len(results) == 5
+    results = recommend_v2(real_catalog, genres=["rock", "poprock"], moods=["calm"], k=10)
+    assert len(results) == 10
     assert [r.score for r in results] == sorted((r.score for r in results), reverse=True)
     assert results[0].score == 3
     by_id = {t.track_id: t for t in real_catalog}
@@ -350,7 +350,7 @@ def test_real_catalog_recommendations(real_catalog):
     expected = sorted(
         ((-(2 * bool({"rock", "poprock"} & set(t.genres)) + bool({"calm"} & set(t.moods))), int(t.track_id[6:]))
          for t in real_catalog if {"rock", "poprock"} & set(t.genres) or "calm" in t.moods))
-    assert [(-r.score, int(r.track.track_id[6:])) for r in results] == expected[:5]
+    assert [(-r.score, int(r.track.track_id[6:])) for r in results] == expected[:10]
 
 
 def test_real_catalog_order_independence(real_catalog):
@@ -363,3 +363,16 @@ def test_real_catalog_order_independence(real_catalog):
 def test_real_catalog_unsupported_tag(real_catalog):
     with pytest.raises(UnsupportedTagError):
         recommend_v2(real_catalog, genres=["definitely-not-a-genre"])
+
+
+def test_real_catalog_respects_artist_cap_and_has_5000_unique_ids(real_catalog):
+    from collections import Counter
+    assert len({t.track_id for t in real_catalog}) == len(real_catalog) == 5000
+    assert max(Counter(t.artist.casefold() for t in real_catalog).values()) <= 5
+
+
+def test_real_catalog_top10_scores_are_nonincreasing_and_ties_use_ascending_id(real_catalog):
+    results = recommend_v2(real_catalog, genres=["rock"], moods=["calm", "happy"], k=10)
+    assert len(results) == 10
+    keys = [(-r.score, int(r.track.track_id[6:])) for r in results]
+    assert keys == sorted(keys)

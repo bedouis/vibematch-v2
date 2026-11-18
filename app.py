@@ -30,8 +30,8 @@ from src.v2_recommender import (
     load_v2_catalog,
 )
 
-CATALOG_PATH = Path(__file__).resolve().parent / "data" / "jamendo_2500.csv"
-TOP_K = 5
+CATALOG_PATH = Path(__file__).resolve().parent / "data" / "jamendo_5000.csv"
+TOP_K = 10
 RESULT_KEY = "last_result"  # session_state: the last successful RecommendationResult
 PLACEHOLDER = "Relaxing ambient music for reading"
 

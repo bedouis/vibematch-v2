@@ -21,7 +21,7 @@ from src.pipeline import RecommendationError, RecommendationResult, run_pipeline
 from src.v2_recommender import MusicTrack, catalog_vocabulary, load_v2_catalog, recommend_v2
 
 ROOT = Path(__file__).resolve().parent.parent
-REAL_CATALOG = ROOT / "data" / "jamendo_2500.csv"
+REAL_CATALOG = ROOT / "data" / "jamendo_5000.csv"
 
 
 def track(n, genres=(), moods=(), instruments=()):
@@ -253,11 +253,11 @@ def test_real_catalog_end_to_end_with_fake_gemini():
     catalog = load_v2_catalog(REAL_CATALOG)
     vocab = catalog_vocabulary(catalog)
     client = FakeClient(["ambient"], ["relaxing"])
-    result = run_pipeline("Relaxing ambient music for reading", catalog, vocab, client=client)
+    result = run_pipeline("Relaxing ambient music for reading", catalog, vocab, client=client, k=10)
     assert len(client.calls) == 1
-    assert len(result.recommendations) == 5
-    assert [r.score for r in result.recommendations] == [3] * 5
-    direct = recommend_v2(catalog, genres=["ambient"], moods=["relaxing"], k=5)
+    assert len(result.recommendations) == 10
+    assert [r.score for r in result.recommendations] == [3] * 10
+    direct = recommend_v2(catalog, genres=["ambient"], moods=["relaxing"], k=10)
     assert list(result.recommendations) == direct
     assert all(r.track.track_url.startswith("http") for r in result.recommendations)
 

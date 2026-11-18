@@ -27,7 +27,7 @@ from src.intent import (
 )
 from src.v2_recommender import CatalogVocabulary, catalog_vocabulary, load_v2_catalog, recommend_v2
 
-REAL_CATALOG = Path(__file__).resolve().parent.parent / "data" / "jamendo_2500.csv"
+REAL_CATALOG = Path(__file__).resolve().parent.parent / "data" / "jamendo_5000.csv"
 
 VOCAB = CatalogVocabulary(
     genres=frozenset({"rock", "poprock", "ambient", "jazz", "electronic"}),

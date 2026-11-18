@@ -1,6 +1,8 @@
-# VibeMatch 2.0 Catalog: `data/jamendo_2500.csv`
+# VibeMatch 2.0 Catalog: `data/jamendo_5000.csv`
 
-A 2,500-track catalog of real music metadata, selected deterministically from the MTG-Jamendo Dataset. The V1 catalog (`data/songs.csv`) is unchanged.
+A 5,000-track catalog of real music metadata, selected deterministically from the MTG-Jamendo Dataset. The V1 catalog (`data/songs.csv`) is unchanged.
+
+An earlier 2,500-track build (`data/jamendo_2500.csv`) is no longer used by the application. It was produced by the same script and rules, and every one of its tracks is also in the 5,000-track catalog.
 
 ## Provenance
 
@@ -32,7 +34,7 @@ The upstream README states that the metadata is licensed under **CC BY-NC-SA 4.0
 
 - **Attribution:** credit the MTG-Jamendo Dataset (citation above) and Jamendo as the origin of titles, artists, tags and URLs.
 - **NonCommercial:** use only for non-commercial research and academic purposes, such as this course project.
-- **ShareAlike:** derivatives, including `data/jamendo_2500.csv`, must be shared under the same license.
+- **ShareAlike:** derivatives, including `data/jamendo_5000.csv`, must be shared under the same license.
 - Individual audio files on Jamendo carry their own Creative Commons licenses. This project does not use or distribute audio.
 - This repository's code is separate from the data and is not covered by the data license.
 
@@ -51,7 +53,7 @@ Track IDs have the form `track_0000214` (zero-padded) in both files and are pres
 
 ## Output format
 
-`data/jamendo_2500.csv`: UTF-8, `\n` line endings, standard CSV quoting, one row per track.
+`data/jamendo_5000.csv`: UTF-8, `\n` line endings, standard CSV quoting, one row per track.
 
 | Column | Source | Notes |
 |---|---|---|
@@ -100,18 +102,20 @@ A source row must pass all of these. Each tag-file row is counted under the firs
 | Excluded: no genre tag | 318 |
 | Excluded: no mood/theme tag | 33,669 |
 | **Eligible** | **21,712** |
-| **Selected** | **2,500** |
+| **Selected** | **5,000** |
 
 Mood/theme tags are the binding constraint: most Jamendo tracks have genre tags but no mood/theme tag. Separately, 938 meta rows have no tag-file record (the tag file covers only tracks longer than 30 s) and 2 meta rows were malformed.
 
 ## Selection method
 
-Goal: 2,500 tracks spread across genres and artists, reproducible on any machine, independent of source row order. A fixed random seed would not guarantee that, so no random number generator is used.
+Goal: 5,000 tracks spread across genres and artists, reproducible on any machine, independent of source row order. A fixed random seed would not guarantee that, so no random number generator is used.
 
 1. **Group assignment.** Every eligible track is placed in exactly one group, its *rarest* genre (fewest eligible tracks; ties broken alphabetically). A multi-genre track therefore appears once, and rare genres are not absorbed by large ones such as `electronic`.
 2. **Within-group order.** Tracks are sorted by `SHA-256(track_id)`, with the track ID as tie-breaker. This is a stable pseudo-random order, so the selection is not biased toward the earliest uploads.
 3. **Round-robin.** Groups are visited in alphabetical order, one track per group per round. A track is skipped if its artist already has 5 selected tracks (case-insensitive name match).
-4. Stop at 2,500 tracks, or when all groups are exhausted (in which case the shorter count is reported and nothing is fabricated).
+4. Stop at 5,000 tracks, or when all groups are exhausted (in which case the shorter count is reported and nothing is fabricated).
+
+**Feasibility at 5,000.** The 21,712 eligible tracks come from 1,707 distinct artists. With at most 5 tracks per artist, at most 5,887 tracks can be selected, so a target of 5,000 is reachable without changing any rule. Roughly 85% of that ceiling is used, so the artist cap now limits the selection more than it did at 2,500. A target above 5,887 would need a higher cap or fewer constraints, and the script would report the shorter count instead.
 
 The output is sorted by track ID, and regenerating from the same input files produces a byte-identical CSV (verified, and covered by a test).
 
@@ -119,31 +123,32 @@ The output is sorted by track ID, and regenerating from the same input files pro
 
 | Statistic | Value |
 |---|---:|
-| Tracks | 2,500 |
-| Unique artists | 975 |
-| Max tracks per artist | 5 |
-| Top-5 artists' share of catalog | 1.0% |
-| Distinct genres / moods / instruments | 221 / 209 / 114 |
-| Tracks with no instrument tags | 1,228 (49.1%) |
+| Tracks | 5,000 |
+| Unique artists | 1,538 |
+| Max tracks per artist | 5 (663 artists are at the cap) |
+| Artists with 1 / 2 / 3 / 4 / 5 tracks | 423 / 204 / 138 / 110 / 663 |
+| Top-5 artists' share of catalog | 0.5% |
+| Distinct genres / moods / instruments | 221 / 216 / 123 |
+| Tracks with no instrument tags | 2,367 (47.3%) |
 | Missing or invalid URLs | 0 |
-| Mean genres / moods / instruments per track | 3.11 / 1.69 / 1.28 |
+| Mean genres / moods / instruments per track | 2.92 / 1.65 / 1.30 |
 
-Top genres: electronic (623), soundtrack (363), rock (322), ambient (300), pop (286), dance (169), classical (163), indie (143), chillout (141), alternative (139).
-Top moods: dark (161), energetic (159), melodic (146), happy (131), love (125), film (116), epic (110), relaxing (96), dream (90), sad (82).
-Top instruments: synthesizer (341), drums (296), bass (277), piano (254), guitar (238), electricguitar (222), voice (109), keyboard (102), computer (99), acousticguitar (95).
+Top genres: electronic (1264), soundtrack (740), rock (705), ambient (693), pop (654), classical (384), dance (330), chillout (313), easylistening (304), indie (299).
+Top moods: energetic (319), melodic (318), dark (296), love (276), happy (261), film (239), relaxing (231), epic (193), dream (185), emotional (181).
+Top instruments: synthesizer (715), drums (607), piano (605), bass (582), guitar (489), electricguitar (479), acousticguitar (232), voice (219), computer (196), keyboard (187).
 
 ## Limitations
 
 - **Tags are uploader-provided**, not expert-curated or audio-derived. They can be subjective, inconsistent, or missing.
 - **Only tracks that carry a mood/theme tag are eligible** (about 39% of tracks with usable metadata), which skews the pool toward tracks whose uploaders chose to add mood tags.
-- **Long tail of rare tags:** 19 genres appear on fewer than 5 selected tracks, and the genre list includes near-duplicates (`rock`, `poprock`, `rockfrancais`) because upstream cleaning did not collapse them.
+- **Long tail of rare tags:** 19 genres appear on fewer than 5 selected tracks (a search for one of them can return fewer than 10 results), and the genre list includes near-duplicates (`rock`, `poprock`, `rockfrancais`) because upstream cleaning did not collapse them.
 - **Instruments are optional** and absent for about half the tracks.
 - **No numeric audio features.** There is no energy, tempo or valence, so ranking must rely on tags.
 - **Tag format:** tags are lowercase single tokens (`electroambient`), not natural words. Mapping user language onto them is the job of the later intent step, which must validate against this vocabulary.
-- **Duplicates by content:** two artist+title pairs occur twice under different track IDs (re-uploads). Deduplication is by track ID only.
+- **Duplicates by content:** nine artist+title pairs occur twice under different track IDs (re-uploads). Deduplication is by track ID only.
 - **Links may be stale.** A `track_url` came from the source metadata and does not guarantee the track is still online or available in your region. URLs use `http://` as published upstream.
 - **Genre mix is deliberately flattened** by the selection method. Frequencies in this catalog do not represent Jamendo's overall distribution.
-- Titles and artists are mostly independent and international; 92 titles contain non-ASCII characters, and some content may be unsuitable for all audiences.
+- Titles and artists are mostly independent and international; 227 titles contain non-ASCII characters, and some content may be unsuitable for all audiences.
 
 ## Regeneration
 
@@ -163,10 +168,12 @@ shasum -a 256 data/raw_cache/*.tsv
 python scripts/prepare_jamendo.py \
     --tags data/raw_cache/raw_30s_cleantags.tsv \
     --meta data/raw_cache/raw.meta.tsv \
-    --output data/jamendo_2500.csv
+    --output data/jamendo_5000.csv
 
 # 4. Check
 python -m pytest -q tests/test_jamendo_data.py
 ```
+
+With the source files above, the generated catalog has SHA-256 `1702ac80da3c6deff50a5e57e8dbbca197842014ffd4d173c83eb80f2b928540` (`shasum -a 256 data/jamendo_5000.csv`).
 
 If the checksums differ, the upstream metadata has changed and the output may differ from the committed catalog. The regeneration test will then fail by design. `data/raw_cache/` is in `.gitignore`; the raw files are not committed.

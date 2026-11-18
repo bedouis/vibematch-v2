@@ -71,7 +71,7 @@ def test_initial_page_shows_title_subtitle_and_form():
     assert at.text_input[0].placeholder == "Relaxing ambient music for reading"
     assert at.button[0].label == "Find my vibe"
     assert not at.error and not at.warning
-    assert "2,500 tracks" in all_text(at)               # catalog loaded; attribution shown
+    assert "5,000 tracks" in all_text(at)               # catalog loaded; attribution shown
 
 
 def test_no_search_on_load(monkeypatch):
@@ -80,7 +80,7 @@ def test_no_search_on_load(monkeypatch):
     assert calls == []
 
 
-def test_successful_search_shows_interpretation_and_five_ranked_cards(monkeypatch):
+def test_successful_search_shows_interpretation_and_ten_ranked_cards(monkeypatch):
     calls = patch_interpreter(monkeypatch, ["ambient"], ["relaxing"])
     at = search(new_app(), "Relaxing ambient music for reading")
     assert not at.exception and not at.error
@@ -90,12 +90,12 @@ def test_successful_search_shows_interpretation_and_five_ranked_cards(monkeypatc
     assert "`ambient`" in text and "`relaxing`" in text
     assert "Top matches" in text
     assert "not an AI confidence" in text and "no audio was analyzed" in text
-    for rank in range(1, 6):
+    for rank in range(1, 11):
         assert f"**{rank}. " in text
-    assert text.count("**3/3**") == 5
+    assert text.count("**3/3**") == 10
     assert "Matches your requested ambient genre and relaxing mood." in text
     links = at.get("link_button")
-    assert len(links) == 5
+    assert len(links) == 10
     assert all(l.proto.url.startswith("http://www.jamendo.com/track/") for l in links)
 
 
@@ -167,7 +167,7 @@ def test_result_persists_across_reruns_without_new_gemini_call(monkeypatch):
     calls = patch_interpreter(monkeypatch, ["ambient"], ["relaxing"])
     at = search(new_app(), "Relaxing ambient music for reading")
     before = (all_text(at), link_urls(at))
-    assert len(before[1]) == 5 and len(calls) == 1
+    assert len(before[1]) == 10 and len(calls) == 1
     for _ in range(3):
         at.run()                                    # unrelated rerun, no form submission
         assert not at.exception and not at.error
@@ -190,7 +190,7 @@ def test_stored_value_is_only_the_immutable_result(monkeypatch):
     stored = at.session_state["last_result"]
     assert isinstance(stored, RecommendationResult)
     assert stored.query == "jazz please" and stored.intent.genres == ("jazz",)
-    assert len(stored.recommendations) == 5
+    assert len(stored.recommendations) == 10
 
 
 def test_no_result_stored_before_any_search(monkeypatch):
@@ -210,7 +210,7 @@ def test_new_submission_runs_pipeline_once_and_replaces_old_result(monkeypatch):
     text = all_text(at)
     assert len(first) == 1 and len(second) == 1     # exactly one new execution
     assert "`jazz`" in text and "`ambient`" not in text and "relaxing" not in text
-    assert link_urls(at) != old_urls and len(link_urls(at)) == 5
+    assert link_urls(at) != old_urls and len(link_urls(at)) == 10
     assert at.session_state["last_result"].intent.genres == ("jazz",)
 
     at.run()                                        # the replacement is what persists
@@ -227,7 +227,7 @@ def test_new_submission_runs_pipeline_once_and_replaces_old_result(monkeypatch):
 def test_failed_submission_clears_stale_results_and_shows_only_the_error(monkeypatch, error, expected):
     patch_interpreter(monkeypatch, ["ambient"], ["relaxing"])
     at = search(new_app(), "ambient")
-    assert len(link_urls(at)) == 5
+    assert len(link_urls(at)) == 10
 
     patch_interpreter(monkeypatch, error=error)
     at = search(at, "a new query that fails")
@@ -245,7 +245,7 @@ def test_failed_submission_clears_stale_results_and_shows_only_the_error(monkeyp
 def test_empty_submission_clears_stale_results(monkeypatch):
     calls = patch_interpreter(monkeypatch, ["ambient"], ["relaxing"])
     at = search(new_app(), "ambient")
-    assert len(link_urls(at)) == 5
+    assert len(link_urls(at)) == 10
     at = search(at, "   ")
     assert at.warning and "Describe what you want to hear" in at.warning[0].value
     assert not link_urls(at) and "Top matches" not in all_text(at)
@@ -269,9 +269,46 @@ def test_missing_key_after_success_clears_results(monkeypatch):
     original = pipeline_mod.interpret_intent
     patch_interpreter(monkeypatch, ["jazz"], [])
     at = search(new_app(), "jazz")
-    assert len(link_urls(at)) == 5
+    assert len(link_urls(at)) == 10
 
     monkeypatch.setattr(pipeline_mod, "interpret_intent", original)   # real interpreter, no key
     at = search(at, "calm rock")
     assert "GEMINI_API_KEY" in at.error[0].value
     assert not link_urls(at) and "last_result" not in at.session_state
+
+
+# ---- top-10 behavior on the real 5,000-track catalog ----------------------
+
+def test_app_requests_ten_results_within_recommender_limit():
+    import app
+    from src.v2_recommender import MAX_K
+    assert app.TOP_K == 10 <= MAX_K
+    assert app.CATALOG_PATH.name == "jamendo_5000.csv"
+
+
+def test_cards_are_in_exact_rank_order_with_stable_id_tiebreak(monkeypatch):
+    import re
+    from src.v2_recommender import load_v2_catalog, recommend_v2
+    import app
+    patch_interpreter(monkeypatch, ["rock", "poprock"], ["calm"])
+    at = search(new_app(), "calm rock")
+    expected = recommend_v2(load_v2_catalog(app.CATALOG_PATH), genres=["rock", "poprock"], moods=["calm"], k=10)
+    text = all_text(at)
+    shown = re.findall(r"\*\*(\d+)\. (.+?)\*\*", text)
+    assert [int(n) for n, _ in shown] == list(range(1, 11))
+    assert [app.md(r.track.title) for r in expected] == [t for _, t in shown]
+    assert [r.score for r in expected] == sorted((r.score for r in expected), reverse=True)
+    assert len(link_urls(at)) == 10
+    assert link_urls(at) == [r.track.track_url for r in expected]
+
+
+def test_fewer_than_ten_matches_shows_only_real_matches(monkeypatch):
+    from src.v2_recommender import catalog_vocabulary, load_v2_catalog
+    import app
+    catalog = load_v2_catalog(app.CATALOG_PATH)
+    counts = {g: sum(1 for t in catalog if g in t.genres) for g in catalog_vocabulary(catalog).genres}
+    rare, n = min(((g, c) for g, c in counts.items() if c < 10), key=lambda gc: (gc[1], gc[0]))
+    patch_interpreter(monkeypatch, [rare], [])
+    at = search(new_app(), rare)
+    assert len(link_urls(at)) == n < 10              # no padding with unrelated tracks
+    assert all_text(at).count("**2/3**") == n
