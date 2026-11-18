@@ -1,3 +1,4 @@
-pandas
-pytest
-streamlit
+pandas>=3.1,<4
+pytest>=9.2,<10
+streamlit>=1.67,<2
+google-genai>=3.5,<4
